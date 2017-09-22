@@ -1,25 +1,182 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "PA1_template"
+output: html_document
 ---
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
 
+1) Loading and preprocessing the data This part of the code is necessary for the inital loading of the dataset:
 
-## Loading and preprocessing the data
+- Reads the data
+```{r, echo = TRUE}
+data = read.csv('activity.csv')
+data$date = as.Date(data$date, "%Y-%m-%d")
+```
 
+- Splits the data per date
+ 
+```{r, echo = TRUE}
+splitDay = split(data, data$date)
 
+```
 
-## What is mean total number of steps taken per day?
+2) What is mean total number of steps taken per day?
 
+- Calculate the total number of steps taken per day:
 
+```{r, echo = TRUE}
+totalSteps = sapply(splitDay, function(x) sum(x$steps))
 
-## What is the average daily activity pattern?
+```
 
+- Calculate and report the mean and median of the total number of steps taken per day:
 
+```{r, echo = TRUE}
+medianSteps = sapply(splitDay, function(x) median(x$steps))
+hist(totalSteps,main="Histogram of Frequency of TotalSteps/Day")
 
-## Imputing missing values
+```
 
+3) What is the average daily activity pattern?
 
+- The code initializes the dataset and creates a plot to find the average steps vs time interval
+- create vector:
 
-## Are there differences in activity patterns between weekdays and weekends?
+```{r, echo = TRUE}
+
+interval = seq(0,2355,5)
+steps = numeric()
+for(i in 1:472) {
+  steps[i] = 0
+}
+avgSteps = data.frame(interval, steps)
+names(avgSteps) = c('interval','avgsteps')
+
+```
+
+- Add the mean data in for the 5 minute interval:
+
+```{r, echo = TRUE}
+for (i in 1:472){
+  avgSteps$avgsteps[i] = mean(data$steps[data$interval == interval[i]], na.rm=TRUE)
+}
+
+```
+
+- Plot the avgsteps vs time interval:
+
+```{r, echo = TRUE}
+plot(avgSteps, type='l', main='Avg. Steps over 5 minute intervals',xlab='Interval(minutes)',
+     ylab='Average Steps')
+
+```
+
+- Finds the interval with the highest avg:
+
+```{r, echo = TRUE}
+avgSteps$interval[which.max(avgSteps$avgsteps)]
+
+```
+
+4) Imputing missing values
+
+- Counts number of na values in steps:
+
+```{r, echo = TRUE}
+numNa = sum(is.na(data$steps))
+
+```
+
+- Replaces NA with 0:
+
+```{r, echo = TRUE}
+noNa = data
+noNa[is.na(noNa)]=0
+
+```
+
+- Splits the data per date:
+
+```{r, echo = TRUE}
+splitNa = split(noNa, noNa$date)
+
+```
+
+- Average steps/median:
+```{r, echo = TRUE}
+totalNa = sapply(splitNa, function(x) sum(x$steps))
+
+```
+
+- Plots histogram of the number of total steps per day:
+
+```{r, echo = TRUE}
+hist(totalNa,main="Histogram of Frequency of TotalSteps/Day", xlab="Total number of Steps")
+
+```
+
+- Average/mean across all values:
+
+```{r, echo = TRUE}
+avgNa = sapply(splitNa, function(x) mean(x$steps))
+medNa = sapply(splitNa, function(x) median(x$steps))
+
+```
+
+5) Are there differences in activity patterns between weekdays and weekends?
+
+- The following creates subsets containing the weekday/weekend values of the dataset:
+
+```{r, echo = TRUE}
+weekData = data
+weekData[is.na(weekData)]=0    
+weekData$days = weekdays(weekData$date)
+weekData$days = as.factor(ifelse(weekdays(weekData$date) %in% c("Saturday","Sunday"), 
+                                 "Weekend", "Weekday")) 
+
+avgEnd = mean(weekData$steps[weekData$days == 'Weekend'])
+avgDay = mean(weekData$steps[weekData$days == 'Weekday'])
+
+```
+
+- Subset weekday and weekend values:
+
+```{r, echo = TRUE}
+weekdays = subset(weekData, weekData$days == 'Weekday')
+weekends = subset(weekData, weekData$days == 'Weekend')
+
+```
+
+- Preallocate vector:
+
+```{r, echo = TRUE}
+weekend = numeric()
+weekday = numeric()
+for(i in 1:472) {
+  weekday[i] = 0
+  weekend[i] = 0
+}
+avgWeek = data.frame(interval, weekend, weekday)
+names(avgWeek) = c('interval','avgsteps.weekend','avgsteps.weekday')
+
+```
+
+- Adds the mean data in for the 5 minute interval:
+
+```{r, echo = TRUE}
+for (i in 1:472){
+  avgWeek$avgsteps.weekday[i] = mean(weekdays$steps[weekdays$interval == interval[i]], na.rm=TRUE)
+  avgWeek$avgsteps.weekend[i] = mean(weekends$steps[weekends$interval == interval[i]], na.rm=TRUE)
+}
+
+```
+
+- The plot is setup to show the differences in the average steps vs time period between weekends and weekdays
+
+```{r, echo = TRUE}
+par(mfrow=c(2,1))
+plot(avgWeek$interval, avgWeek$avgsteps.weekend, type='l', main ="Weekend vs Avg Steps",
+     xlab="Interval(steps)", ylab="Average Steps")
+plot(avgWeek$interval, avgWeek$avgsteps.weekday, main ="Weekday vs Avg Steps", 
+     xlab="Interval(steps)", ylab="Average Steps", type='l')
+
+```
